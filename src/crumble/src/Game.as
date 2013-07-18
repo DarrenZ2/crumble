@@ -165,7 +165,7 @@ package
 		
 		private function onEnterFrame(event:EnterFrameEvent):void
 		{
-			space.step(1 / HellowMobile.frameRate);
+			space.step(1 / Crumble.frameRate);
 	
 			space.liveBodies.foreach(function(b:Body) : void {
 				var graphic:DisplayObject = b.userData.graphic;
