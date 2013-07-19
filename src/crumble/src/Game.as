@@ -8,7 +8,6 @@ package
 	import nape.phys.Body;
 	import nape.phys.BodyList;
 	import nape.phys.BodyType;
-	import nape.phys.Material;
 	import nape.shape.Polygon;
 	import nape.space.Space;
 	import nape.util.BitmapDebug;
@@ -16,7 +15,7 @@ package
 	
 	import starling.core.Starling;
 	import starling.display.DisplayObject;
-	import starling.display.Quad;
+	import starling.display.DisplayObjectContainer;
 	import starling.display.Sprite;
 	import starling.events.EnterFrameEvent;
 	import starling.events.Event;
@@ -24,24 +23,26 @@ package
 	import starling.events.TouchEvent;
 	import starling.events.TouchPhase;
 		
-	public final class Game extends Sprite
+	public final class Game extends Sprite implements IGameService
 	{
 		private static const spaceDebugOverlay:Boolean = false;
+		private static var _service:IGameService;		public static function get service():IGameService { return _service; }
 		private var background:Background;
 		private var gravity:IGravity;
 		private var border:Body;
-		private var space:Space;
+		private var _space:Space;						public function get space():Space { return _space; }
 		private var debug:Debug;
-		private var bouncyMaterial:Material;
-		private var debugStencil:Stencil;
 		private var bodyQueryCache:BodyList;
-		private var terrain:Terrain;
+		private var _terrain:Terrain;					public function get terrain():Terrain { return _terrain; }
+		private var _classes:GameClasses;				public function get classes():GameClasses { return _classes; }
+														public function get display():DisplayObjectContainer { return this as DisplayObjectContainer; }		
 		
 		public function Game()
 		{
 			super();
 			
 			bodyQueryCache = new BodyList();
+			_classes = new GameClasses();
 			
 			if (stage != null) {
 				initialize(null);
@@ -73,16 +74,17 @@ package
 				removeEventListener(Event.ADDED_TO_STAGE, initialize);
 			}
 
+			_service = this as IGameService;
+			
 			var background:Background = new Background();
 			addChild(background);
 			
-			space = new Space(Vec2.weak(0, 0));
-			bouncyMaterial = new Material(1.2);
+			_space = new Space(Vec2.weak(0, 0));
 
 			// gravity
-			space.gravity = new Vec2(0, 600);
+			_space.gravity = new Vec2(0, 600);
 			//gravity = new PointGravity(space, new Vec2(stage.stageWidth/2, stage.stageHeight/2));
-			gravity = new AccelerometerGravity(space);
+			gravity = new AccelerometerGravity(_space);
 
 			if (spaceDebugOverlay) {
 				debug = new BitmapDebug(stage.stageWidth, stage.stageHeight, stage.color);
@@ -90,16 +92,14 @@ package
 			}
 
 			// border prevents objects from leaving the stage
-			border = createBorderBody(stage.bounds);
-			border.space = space;
+			//border = createBorderBody(stage.bounds);
+			//border.space = space;
 
 			// terrain
-			terrain = new Terrain(space);
-			addChild(terrain);
+			_terrain = new Terrain(_space);
+			addChild(_terrain);
 			
-			// a debug stencil for punching out holes
-			debugStencil = Stencil.createDebugCircle(30);
-
+			// continuous events
 			addEventListener(EnterFrameEvent.ENTER_FRAME, onEnterFrame);
 			addEventListener(TouchEvent.TOUCH, onTouch);
 		}
@@ -112,46 +112,20 @@ package
 				gravity.preFrameUpdate(dt);
 			}
 			
-			space.step(dt);
+			_space.step(dt);
 			
-			space.liveBodies.foreach(function(b:Body):void {
-				var graphic:DisplayObject = b.userData.graphic;
-				graphic.x = b.position.x; 
-				graphic.y = b.position.y;
-				graphic.rotation = b.rotation;
+			_space.liveBodies.foreach(function(b:Body):void {
+				var visual:DisplayObject = b.userData.visual;
+				visual.x = b.position.x; 
+				visual.y = b.position.y;
+				visual.rotation = b.rotation;
 			});
 			
 			if (spaceDebugOverlay) {
 				debug.clear();
-				debug.draw(space);
+				debug.draw(_space);
 				debug.flush();
 			}
-		}
-		
-		public function explodeAt(pos:Point):void
-		{
-			var transform:Matrix = new Matrix();
-			debugStencil.matrixCenterRotateInplace(pos.x, pos.y, 0, transform);
-			terrain.subtractStencil(debugStencil, transform);
-		}
-
-		private function spawnBoxAt(pos:Point):void
-		{
-			var w:Number = 15;
-			var h:Number = 15;
-
-			var quad:Quad = new Quad(w, h);
-			quad.pivotX = w/2;
-			quad.pivotY = h/2;
-			quad.color = 0xffff00ff;
-			addChild(quad);
-			
-			var box:Body = new Body(BodyType.DYNAMIC);
-			box.shapes.add(new Polygon(Polygon.box(w, h)));
-			box.setShapeMaterials(bouncyMaterial);
-			box.position.setxy(pos.x, pos.y); 
-			box.userData.graphic = quad;
-			space.bodies.add(box);
 		}
 		
 		private function onTouch(event:TouchEvent):void
@@ -161,7 +135,7 @@ package
 			{
 				var pos:Point = touch.getLocation(this);
 				bodyQueryCache.clear();
-				space.bodiesUnderPoint(Vec2.fromPoint(pos, true),  null, bodyQueryCache);
+				_space.bodiesUnderPoint(Vec2.fromPoint(pos, true),  null, bodyQueryCache);
 				
 				var hitTerrain:Boolean = false;
 				for (var i:int = 0; i < bodyQueryCache.length && !hitTerrain; i++) {
@@ -171,10 +145,11 @@ package
 				}
 				
 				if (hitTerrain) {
-					explodeAt(pos);
+					// do nothing
 				}
 				else {
-					spawnBoxAt(pos);
+					// weapon test
+					_classes.mortar.spawn(new Vec2(pos.x, pos.y), Math.PI*1.38);
 				}
 			}
 		}

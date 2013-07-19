@@ -5,6 +5,7 @@ package
 	import flash.display.StageScaleMode;
 	
 	import starling.core.Starling;
+	import starling.events.Event;
 
 	[SWF(width="400", height="300", frameRate="60", backgroundColor="#000000")]
 	public class Crumble extends Sprite
