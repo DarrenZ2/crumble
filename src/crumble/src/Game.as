@@ -1,14 +1,9 @@
 package
 {
-	import flash.display.BitmapData;
-	import flash.display.BitmapDataChannel;
-	import flash.display.BlendMode;
-	import flash.display.Shape;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
+	import flash.geom.Rectangle;
 	
-	import nape.dynamics.InteractionFilter;
-	import nape.geom.AABB;
 	import nape.geom.Vec2;
 	import nape.phys.Body;
 	import nape.phys.BodyList;
@@ -21,7 +16,6 @@ package
 	
 	import starling.core.Starling;
 	import starling.display.DisplayObject;
-	import starling.display.Image;
 	import starling.display.Quad;
 	import starling.display.Sprite;
 	import starling.events.EnterFrameEvent;
@@ -29,23 +23,19 @@ package
 	import starling.events.Touch;
 	import starling.events.TouchEvent;
 	import starling.events.TouchPhase;
-	import starling.textures.RenderTexture;
-	import starling.textures.Texture;
 		
-	public class Game extends Sprite
+	public final class Game extends Sprite
 	{
 		private static const spaceDebugOverlay:Boolean = false;
-		private var accgrav:AccelerometerGravity;
+		private var background:Background;
+		private var gravity:IGravity;
+		private var border:Body;
 		private var space:Space;
 		private var debug:Debug;
 		private var bouncyMaterial:Material;
-		private var terrainCollision:BitmapData;
-		private var terrainTexture:RenderTexture;
-		private var terrain:TerrainCache;
-		private var explosionFootprint:BitmapData;
-		private var explosionFootprintImage:Image;
+		private var debugStencil:Stencil;
 		private var bodyQueryCache:BodyList;
-		private var terrainIsolation:InteractionFilter;
+		private var terrain:Terrain;
 		
 		public function Game()
 		{
@@ -61,113 +51,70 @@ package
 			}
 		}
 		
+		private static function createBorderBody(bounds:Rectangle):Body
+		{
+			var x1:int = bounds.x;
+			var y1:int = bounds.y;
+			var x2:int = bounds.right;
+			var y2:int = bounds.bottom;
+			
+			var b:Body = new Body(BodyType.STATIC);
+			b.shapes.add(new Polygon(Polygon.rect(x1  , y2  , x2  , y1+1)));
+			b.shapes.add(new Polygon(Polygon.rect(x1  , y1-1, x2  , y1+1)));
+			b.shapes.add(new Polygon(Polygon.rect(x2  , y1  , x1+1, y2  )));
+			b.shapes.add(new Polygon(Polygon.rect(x1-1, y1  , x1+1, y2  )));
+			
+			return b;
+		}
+		
 		private function initialize(event:Event):void
 		{
 			if (event != null) {
 				removeEventListener(Event.ADDED_TO_STAGE, initialize);
 			}
 
-			// Background for receiving touch events
-			var bkgnd:Quad = new Quad(stage.stageWidth, stage.stageHeight);
-			bkgnd.color = 0xff506880;
-			addChild(bkgnd);
-
+			var background:Background = new Background();
+			addChild(background);
+			
 			space = new Space(Vec2.weak(0, 0));
 			bouncyMaterial = new Material(1.2);
-			
-			if (AccelerometerGravity.isSupported) {
-				accgrav = new AccelerometerGravity();
-				accgrav.space = space;
-			}
-			else {
-				space.gravity = Vec2.weak(0, 600);
-			}
-			
+
+			// gravity
+			space.gravity = new Vec2(0, 600);
+			//gravity = new PointGravity(space, new Vec2(stage.stageWidth/2, stage.stageHeight/2));
+			gravity = new AccelerometerGravity(space);
+
 			if (spaceDebugOverlay) {
 				debug = new BitmapDebug(stage.stageWidth, stage.stageHeight, stage.color);
 				Starling.current.nativeOverlay.addChild(debug.display);
 			}
 
-			setup();
+			// border prevents objects from leaving the stage
+			border = createBorderBody(stage.bounds);
+			border.space = space;
 
-			// Construct collision mask for visible terrain.
-			terrainCollision = new BitmapData(stage.stageWidth, stage.stageHeight);
-			applyTerrainPerlin(terrainCollision, BitmapDataChannel.RED); // collision is pulled from the red channel
+			// terrain
+			terrain = new Terrain(space);
+			addChild(terrain);
 			
-			// Construct visible terrain and mask out collision threshold beneath the isovalue, 0x80.
-			var initialTerrainBitmap:BitmapData = new BitmapData(stage.stageWidth, stage.stageHeight);
-			applyTerrainPerlin(initialTerrainBitmap, 7);
-			initialTerrainBitmap.threshold(terrainCollision, initialTerrainBitmap.rect, new Point(0, 0), "<", 0x00800000, 0x00000000, 0x00FF0000, false);
-			var initialTerrainTexture:Texture = Texture.fromBitmapData(initialTerrainBitmap, false);
-			var initialTerrainImage:Image = new Image(initialTerrainTexture);
-			terrainTexture = new RenderTexture(initialTerrainBitmap.width, initialTerrainBitmap.height);
-			terrainTexture.draw(initialTerrainImage);
-			initialTerrainImage.dispose();
-			initialTerrainTexture.dispose();
-			initialTerrainBitmap.dispose();
-			var terrainImage:Image = new Image(terrainTexture);
-			addChild(terrainImage);
-			
-			const explosionFootprintRadius:Number = 25;
-			var explosionShape:Shape = new Shape();
-			explosionShape.graphics.beginFill(0xffffff, 1.0);
-			explosionShape.graphics.drawCircle(explosionFootprintRadius, explosionFootprintRadius, explosionFootprintRadius);
-			explosionShape.graphics.endFill();
-			explosionFootprint = new BitmapData(explosionFootprintRadius*2, explosionFootprintRadius*2, true, 0);
-			explosionFootprint.draw(explosionShape);
-			var explosionFootprintTexture:Texture = Texture.fromBitmapData(explosionFootprint, false, true, 1);
-			explosionFootprintImage = new Image(explosionFootprintTexture);
-			
-			terrain = new TerrainCache(terrainCollision, 30, 5);
-			terrain.invalidate(new AABB(0, 0, stage.stageWidth, stage.stageHeight), space);
+			// a debug stencil for punching out holes
+			debugStencil = Stencil.createDebugCircle(30);
 
 			addEventListener(EnterFrameEvent.ENTER_FRAME, onEnterFrame);
 			addEventListener(TouchEvent.TOUCH, onTouch);
 		}
 		
-		private static function applyTerrainPerlin(bitmap:BitmapData, channelFlags:uint):void
-		{
-			bitmap.perlinNoise(200, 200, 3, 0x3ed, false, true, channelFlags, false);
-		}
-		
-		public function explodeAt(pos:Point):void
-		{
-			const _pos:Vec2 = Vec2.weak(pos.x - explosionFootprint.width/2, pos.y - explosionFootprint.height/2);
-			
-			// Update visual.
-			explosionFootprintImage.blendMode = BlendMode.ERASE;
-			terrainTexture.draw(explosionFootprintImage, new Matrix(1, 0, 0, 1, _pos.x, _pos.y)); 
-
-			// Subtract from collision.
-			terrainCollision.draw(explosionFootprint, new Matrix(1, 0, 0, 1, _pos.x, _pos.y), null, BlendMode.SUBTRACT);
-			
-			// Invalidate region of terrain collision effected.
-			var region:AABB = AABB.fromRect(explosionFootprint.rect);
-			region.x += _pos.x;
-			region.y += _pos.y;
-			
-			terrain.invalidate(region, space);
-		}
-
-		private function setup():void 
-		{
-			var w:int = stage.stageWidth;
-			var h:int = stage.stageHeight;
-			
-			// Physical scene
-			var floor:Body = new Body(BodyType.STATIC);
-			floor.shapes.add(new Polygon(Polygon.rect( 0,  h, w, 1)));
-			floor.shapes.add(new Polygon(Polygon.rect( 0, -1, w, 1)));
-			floor.shapes.add(new Polygon(Polygon.rect( w,  0, 1, h)));
-			floor.shapes.add(new Polygon(Polygon.rect(-1,  0, 1, h)));
-			floor.space = space;
-		}
-		
 		private function onEnterFrame(event:EnterFrameEvent):void
 		{
-			space.step(1 / Crumble.frameRate);
-	
-			space.liveBodies.foreach(function(b:Body) : void {
+			var dt:Number = 1 / Crumble.frameRate;
+			
+			if (gravity != null) {
+				gravity.preFrameUpdate(dt);
+			}
+			
+			space.step(dt);
+			
+			space.liveBodies.foreach(function(b:Body):void {
 				var graphic:DisplayObject = b.userData.graphic;
 				graphic.x = b.position.x; 
 				graphic.y = b.position.y;
@@ -181,6 +128,13 @@ package
 			}
 		}
 		
+		public function explodeAt(pos:Point):void
+		{
+			var transform:Matrix = new Matrix();
+			debugStencil.matrixCenterRotateInplace(pos.x, pos.y, 0, transform);
+			terrain.subtractStencil(debugStencil, transform);
+		}
+
 		private function spawnBoxAt(pos:Point):void
 		{
 			var w:Number = 15;
