@@ -5,9 +5,8 @@ package
 	import flash.display.StageScaleMode;
 	
 	import starling.core.Starling;
-	import starling.events.Event;
 
-	[SWF(width="400", height="300", frameRate="60", backgroundColor="#000000")]
+	[SWF(width="320", height="240", frameRate="60", backgroundColor="#000000")]
 	public class Crumble extends Sprite
 	{
 		public static const frameRate:int = 60;
@@ -26,6 +25,7 @@ package
 			Starling.handleLostContext = true;
 			mStarling = new Starling(Game, stage);
 			mStarling.simulateMultitouch = true;
+			mStarling.showStats = true;
 			mStarling.start();
 		}
 	}

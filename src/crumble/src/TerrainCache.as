@@ -70,7 +70,7 @@ package
 					
 					if (b == null) {
 						cells[y*width + x] = b = new Body(BodyType.STATIC);
-						b.cbTypes.add(Game.service.classes.physTerrainType);
+						b.cbTypes.add(CallbackTypes.TERRAIN);
 					}
 					
 					for (var i:int = 0; i < polys.length; i++) {

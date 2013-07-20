@@ -16,7 +16,7 @@ package
 			this.space = space;
 			this._origin = origin;
 			this.deadRadius = 10;
-			this.magnitude = 600;
+			this.magnitude = 20;
 		}
 		
 		public function get origin():Vec2

@@ -1,3 +1,6 @@
 [submodule "lib/Starling-Framework"]
 	path = lib/Starling-Framework
 	url = git://github.com/PrimaryFeather/Starling-Framework.git
+[submodule "lib/Starling-Extension-Particle-System"]
+	path = lib/Starling-Extension-Particle-System
+	url = https://github.com/PrimaryFeather/Starling-Extension-Particle-System

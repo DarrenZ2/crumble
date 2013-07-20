@@ -1,6 +1,5 @@
 package
 {
-	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	
@@ -22,10 +21,12 @@ package
 	import starling.events.Touch;
 	import starling.events.TouchEvent;
 	import starling.events.TouchPhase;
+	import starling.extensions.PDParticleSystem;
 		
 	public final class Game extends Sprite implements IGameService
 	{
 		private static const spaceDebugOverlay:Boolean = false;
+
 		private static var _service:IGameService;		public static function get service():IGameService { return _service; }
 		private var background:Background;
 		private var gravity:IGravity;
@@ -42,7 +43,6 @@ package
 			super();
 			
 			bodyQueryCache = new BodyList();
-			_classes = new GameClasses();
 			
 			if (stage != null) {
 				initialize(null);
@@ -52,7 +52,7 @@ package
 			}
 		}
 		
-		private static function createBorderBody(bounds:Rectangle):Body
+		private function createBorderBody(bounds:Rectangle):Body
 		{
 			var x1:int = bounds.x;
 			var y1:int = bounds.y;
@@ -65,6 +65,8 @@ package
 			b.shapes.add(new Polygon(Polygon.rect(x2  , y1  , x1+1, y2  )));
 			b.shapes.add(new Polygon(Polygon.rect(x1-1, y1  , x1+1, y2  )));
 			
+			b.cbTypes.add(CallbackTypes.TERRAIN); // this causes terrain callback to trigger mortar explosion
+
 			return b;
 		}
 		
@@ -79,12 +81,12 @@ package
 			var background:Background = new Background();
 			addChild(background);
 			
-			_space = new Space(Vec2.weak(0, 0));
+			_space = new Space(Vec2.weak(0, 600));
+			_classes = new GameClasses(); // there are some hidden dependencies on _space at the moment (see MortarClass ctor)
 
 			// gravity
-			_space.gravity = new Vec2(0, 600);
-			//gravity = new PointGravity(space, new Vec2(stage.stageWidth/2, stage.stageHeight/2));
-			gravity = new AccelerometerGravity(_space);
+			gravity = new PointGravity(space, new Vec2(stage.stageWidth/2, stage.stageHeight/2));
+			//gravity = new AccelerometerGravity(_space);
 
 			if (spaceDebugOverlay) {
 				debug = new BitmapDebug(stage.stageWidth, stage.stageHeight, stage.color);
@@ -92,8 +94,8 @@ package
 			}
 
 			// border prevents objects from leaving the stage
-			//border = createBorderBody(stage.bounds);
-			//border.space = space;
+			border = createBorderBody(stage.bounds);
+			border.space = space;
 
 			// terrain
 			_terrain = new Terrain(_space);
@@ -116,9 +118,17 @@ package
 			
 			_space.liveBodies.foreach(function(b:Body):void {
 				var visual:DisplayObject = b.userData.visual;
-				visual.x = b.position.x; 
-				visual.y = b.position.y;
-				visual.rotation = b.rotation;
+				if (visual != null) {
+					visual.x = b.position.x; 
+					visual.y = b.position.y;
+					visual.rotation = b.rotation;
+				}
+				
+				var ps:PDParticleSystem = b.userData.particleSystem;
+				if (ps != null) {
+					ps.emitterX = b.position.x;
+					ps.emitterY = b.position.y;
+				}
 			});
 			
 			if (spaceDebugOverlay) {
@@ -149,7 +159,7 @@ package
 				}
 				else {
 					// weapon test
-					_classes.mortar.spawn(new Vec2(pos.x, pos.y), Math.PI*1.38);
+					_classes.mortar.spawn(new Vec2(pos.x, pos.y), Math.PI*Math.random()*2);
 				}
 			}
 		}

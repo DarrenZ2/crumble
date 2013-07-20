@@ -43,8 +43,8 @@ package
 			}
 			
 			// Construct collision mask for visible terrain.
-			var hackWidth:int = 512; // TODO: Replace with bitmap inputs in constructor
-			var hackHeight:int = 512;
+			var hackWidth:int = 1024; // TODO: Replace with bitmap inputs in constructor
+			var hackHeight:int = 1024;
 			terrainCollision = new BitmapData(hackWidth, hackHeight);
 			applyTerrainPerlin(terrainCollision, BitmapDataChannel.RED); // collision is pulled from the red channel
 			

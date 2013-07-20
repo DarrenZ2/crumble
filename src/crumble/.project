@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>crumble</name>
-	<comment/>
+	<comment></comment>
 	<projects>
 	</projects>
 	<buildSpec>
@@ -24,10 +24,14 @@
 	</natures>
 	<linkedResources>
 		<link>
-			<name>[source path] src</name>
+			<name>[source path] Starling-Extension-Particle-System-src</name>
 			<type>2</type>
-			<location>${DOCUMENTS}/lib/Starling-Framework/starling/src</location>
+			<locationURI>DOCUMENTS/lib/Starling-Extension-Particle-System/src</locationURI>
+		</link>
+		<link>
+			<name>[source path] starling-src</name>
+			<type>2</type>
+			<locationURI>DOCUMENTS/lib/Starling-Framework/starling/src</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
-
