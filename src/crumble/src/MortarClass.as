@@ -37,14 +37,11 @@ package
 		
 		private const mortarTimeout:Number = 8;
 		private const collisionRadius:Number = 2;
-		private const explosionRadius:Number = 20;
+		private const explosionRadius:Number = 128;
 		private var distSamplePoint:Body;
-		private var explosionStencil:Stencil;
 		
 		public function MortarClass()
 		{
-			explosionStencil = Stencil.createDebugCircle(explosionRadius); // TODO: Replace with assets
-			
 			// point-approximation hack for closest point checks
 			distSamplePoint = new Body();
 			distSamplePoint.shapes.add(new Circle(0.001));
@@ -61,8 +58,8 @@ package
 		private function subtractExplosionStencilAt(pos:Vec2):void
 		{
 			var transform:Matrix = new Matrix();
-			explosionStencil.matrixCenterRotateInplace(pos.x, pos.y, 0, transform);
-			Game.service.terrain.subtractStencil(explosionStencil, transform);
+			Game.service.shared.circleStencil512.matrixScaleRotateCenterInplace(explosionRadius/512, explosionRadius/512, 0, pos.x, pos.y, transform);
+			Game.service.terrain.subtractStencil(Game.service.shared.circleStencil512, transform);
 		}
 		
 		private function applyRadialImpulseAt(pos:Vec2):void
@@ -92,7 +89,7 @@ package
 		private function removeParticleSystem(ps:PDParticleSystem):void
 		{
 			Starling.juggler.remove(ps);
-			Game.service.display.removeChild(ps, true);
+			Game.service.foreground.removeChild(ps, true);
 		}
 		
 		private function terrainCollision(cb:InteractionCallback):void
@@ -115,7 +112,7 @@ package
 			Starling.juggler.delayCall(removeParticleSystem, explosionTimeout, explosion);
 			
 			cleanup(body);
-			Game.service.display.addChild(explosion);
+			Game.service.foreground.addChild(explosion);
 		}
 
 		private function cleanup(body:Body):void
@@ -124,7 +121,7 @@ package
 			body.userData.particleSystem.stop();
 			Starling.juggler.remove(body.userData.delayedCall);
 			Starling.juggler.delayCall(removeParticleSystem, fireParticleTimeout, body.userData.particleSystem); // wait until particles expire before removing the system
-			Game.service.display.removeChild(body.userData.visual, true);
+			Game.service.foreground.removeChild(body.userData.visual, true);
 			Game.service.space.bodies.remove(body);
 		}
 		
@@ -136,6 +133,7 @@ package
 
 			var body:Body = new Body(BodyType.DYNAMIC);
 			body.shapes.add(new Circle(collisionRadius));
+			body.setShapeMaterials(Game.service.shared.mineMaterial);
 			body.position = pos; 
 			body.rotation = rot;
 			body.velocity = PhysicsHelpers.directionFromAngle(rot);
@@ -144,7 +142,7 @@ package
 			body.userData.delayedCall = Starling.juggler.delayCall(cleanup, this.mortarTimeout, body); 
 			body.cbTypes.add(CallbackTypes.MISSILE);
 
-			Game.service.display.addChild(firetrail);
+			Game.service.foreground.addChild(firetrail);
 			Game.service.space.bodies.add(body);
 		}
 	}

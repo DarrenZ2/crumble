@@ -74,11 +74,12 @@ package
 
 		// Writes data to a transform matrix so that it will center the stencil at the given
 		// position (centerx, centery) and rotate the given angle in radians.
-		public function matrixCenterRotateInplace(centerx:Number, centery:Number, angle:Number, result:Matrix):void
+		public function matrixScaleRotateCenterInplace(scalex:Number, scaley:Number, angle:Number, centerx:Number, centery:Number, result:Matrix):void
 		{
 			result.identity();
 			result.rotate(angle);
-			result.translate(centerx - _rootBitmapRegion.width/2, centery - _rootBitmapRegion.height/2);		
+			result.scale(scalex, scaley);
+			result.translate(centerx - scalex * _rootBitmapRegion.width/2, centery - scaley * _rootBitmapRegion.height/2);		
 		}
 	}
 }

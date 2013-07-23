@@ -3,10 +3,12 @@ package
 	import flash.display.Sprite;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
+	import flash.events.Event;
 	
 	import starling.core.Starling;
+	import flash.geom.Rectangle;
 
-	[SWF(width="320", height="240", frameRate="60", backgroundColor="#000000")]
+	[SWF(width="32", height="32", frameRate="60", backgroundColor="#000000")]
 	public class Crumble extends Sprite
 	{
 		public static const frameRate:int = 60;
@@ -27,6 +29,19 @@ package
 			mStarling.simulateMultitouch = true;
 			mStarling.showStats = true;
 			mStarling.start();
+			
+			stage.addEventListener(Event.RESIZE, onStageResize);
+		}
+		
+		private function onStageResize(event:Event):void
+		{
+			var viewPortRectangle:Rectangle = new Rectangle();
+			viewPortRectangle.width = stage.stageWidth;
+			viewPortRectangle.height = stage.stageHeight;
+			Starling.current.viewPort = viewPortRectangle;
+			
+			mStarling.stage.stageWidth = stage.stageWidth;
+			mStarling.stage.stageHeight = stage.stageHeight;
 		}
 	}
 }

@@ -21,12 +21,16 @@ package
 		private var terrain:TerrainCache;
 		private var terrainCollision:BitmapData;
 		private var terrainTexture:RenderTexture;
+		private var _terrainWidth:int;							public function get terrainWidth():int { return _terrainWidth; }
+		private var _terrainHeight:int;							public function get terrainHeight():int { return _terrainHeight; }
 
-		public function Terrain(space:Space)
+		public function Terrain(space:Space, width:int, height:int)
 		{
 			super();
 			
 			this.space = space;
+			_terrainWidth = width;
+			_terrainHeight = height;
 			
 			if (stage != null) {
 				initialize(null);
@@ -43,14 +47,12 @@ package
 			}
 			
 			// Construct collision mask for visible terrain.
-			var hackWidth:int = 1024; // TODO: Replace with bitmap inputs in constructor
-			var hackHeight:int = 1024;
-			terrainCollision = new BitmapData(hackWidth, hackHeight);
-			applyTerrainPerlin(terrainCollision, BitmapDataChannel.RED); // collision is pulled from the red channel
+			terrainCollision = new BitmapData(_terrainWidth, _terrainHeight);
+			terrainCollision.fillRect(terrainCollision.rect, 0xFFFF0000); // all solid
 			
 			// Construct visible terrain and mask out collision threshold beneath the isovalue, 0x80.
-			var initialTerrainBitmap:BitmapData = new BitmapData(terrainCollision.width, terrainCollision.height);
-			applyTerrainPerlin(initialTerrainBitmap, 7);
+			var initialTerrainBitmap:BitmapData = new BitmapData(_terrainWidth, _terrainHeight);
+			initialTerrainBitmap.fillRect(terrainCollision.rect, 0xFF331E00); // dirt color yo!
 			initialTerrainBitmap.threshold(terrainCollision, initialTerrainBitmap.rect, new Point(0, 0), "<", 0x00800000, 0x00000000, 0x00FF0000, false);
 			var initialTerrainTexture:Texture = Texture.fromBitmapData(initialTerrainBitmap, false);
 			var initialTerrainImage:Image = new Image(initialTerrainTexture);
@@ -63,13 +65,8 @@ package
 			addChild(terrainImage);
 
 			// Add logical terrain. This handles the transformation of bitmap to collidable bodies.
-			terrain = new TerrainCache(terrainCollision, 30, 5);
-			terrain.invalidate(new AABB(0, 0, stage.stageWidth, stage.stageHeight), space);
-		}
-		
-		private static function applyTerrainPerlin(bitmap:BitmapData, channelFlags:uint):void
-		{
-			bitmap.perlinNoise(200, 200, 3, 0x3ed, false, true, channelFlags, false);
+			terrain = new TerrainCache(terrainCollision, 64, 8);
+			terrain.invalidate(new AABB(0, 0, _terrainWidth, _terrainHeight), space);
 		}
 		
 		public function subtractStencil(stencil:Stencil, transform:Matrix):void

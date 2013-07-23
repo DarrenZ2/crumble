@@ -32,9 +32,9 @@ package
 			body.shapes.add(new Polygon(bodyVerts));
 			body.setShapeMaterials(material);
 			body.position.setxy(pos.x, pos.y); 
-			body.userData.graphic = visual;
+			body.userData.visual = visual;
 
-			Game.service.display.addChild(visual);
+			Game.service.foreground.addChild(visual);
 			Game.service.space.bodies.add(body);
 		}
 	}

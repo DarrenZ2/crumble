@@ -11,12 +11,12 @@ package
 		private var magnitude:Number;
 		private var space:Space;
 		
-		public function PointGravity(space:Space, origin:Vec2)
+		public function PointGravity(space:Space, origin:Vec2, magnitude:Number)
 		{
 			this.space = space;
 			this._origin = origin;
-			this.deadRadius = 10;
-			this.magnitude = 20;
+			this.deadRadius = 1;
+			this.magnitude = magnitude;
 		}
 		
 		public function get origin():Vec2
@@ -35,7 +35,8 @@ package
 				var gravity:Vec2 = origin.sub(b.position);// TODO: new Vec2(stage.stageWidth/2 - b.position.x, stage.stageHeight/2 - b.position.y);
 				if (gravity.length >= deadRadius) {
 					gravity.length = magnitude;
-					b.applyImpulse(gravity.muleq(deltaTime));
+					b.velocity = b.velocity.addMul(gravity, deltaTime);
+//					b.applyImpulse(gravity.muleq(deltaTime));
 				}
 			});
 		}

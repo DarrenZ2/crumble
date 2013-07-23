@@ -2,8 +2,8 @@ package
 {
 	import starling.display.Quad;
 	import starling.display.Sprite;
-	import starling.events.Event;
 	import starling.events.ResizeEvent;
+	import starling.events.Event;
 	
 	public final class Background extends Sprite
 	{
@@ -27,15 +27,15 @@ package
 				removeEventListener(Event.ADDED_TO_STAGE, initialize);
 			}
 
+			stage.addEventListener(ResizeEvent.RESIZE, onStageResize);
+			
 			quad = new Quad(stage.stageWidth, stage.stageHeight);
 			quad.color = 0xff506880;
 			addChild(quad);
 		}
 		
-		private function onResize(event:ResizeEvent):void 
+		private function onStageResize(event:ResizeEvent):void 
 		{
-			quad.x = 0;
-			quad.y = 0;
 			quad.width = event.width;
 			quad.height = event.height;
 		}
