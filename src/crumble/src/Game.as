@@ -33,7 +33,7 @@ package
 		private static var _service:IGameService;		public static function get service():IGameService { return _service; }
 		private var _background:Background;				public function get background():DisplayObjectContainer { return _background; }
 		private var _foreground:Sprite;					public function get foreground():DisplayObjectContainer { return _foreground; }
-		private var gravity:IGravity;
+		private var gravity:PointGravity;
 		private var border:Body;
 		private var _space:Space;						public function get space():Space { return _space; }
 		private var debug:Debug;
@@ -41,6 +41,7 @@ package
 		private var _terrain:Terrain;					public function get terrain():Terrain { return _terrain; }
 		private var _classes:GameClasses;				public function get classes():GameClasses { return _classes; }
 		private var _shared:SharedResources;			public function get shared():SharedResources { return _shared; }
+		private var _plumbob:Plumbob;
 		private const terrainWidth:int = 1024;
 		private const terrainHeight:int = 1024;
 		private const initialCircleRadius:Number = 128;
@@ -143,13 +144,18 @@ package
 			addEventListener(EnterFrameEvent.ENTER_FRAME, onEnterFrame);
 			addEventListener(TouchEvent.TOUCH, onTouch);
 			
-			stage.addEventListener(ResizeEvent.RESIZE, onStageResize);
-			resize(stage.stageWidth, stage.stageHeight); // prime the sizes
-			
 			// add three tanks
 			_classes.tank.spawn(2*Math.PI*0/3, 0xFFFF0000);
 			_classes.tank.spawn(2*Math.PI*1/3, 0xFFFFFF00);
 			_classes.tank.spawn(2*Math.PI*2/3, 0xFF0000FF);
+			
+			// add plumbob widget
+			_plumbob = new Plumbob();
+			addChild(_plumbob);
+
+			// handle layout
+			stage.addEventListener(ResizeEvent.RESIZE, onStageResize);
+			resize(stage.stageWidth, stage.stageHeight); // prime the sizes
 		}
 
 		// Scale value to fit the foreground dimension (f) to the stage dimension (s).
@@ -195,6 +201,10 @@ package
 			_background.height = h;
 			_background.scaleX = 1;
 			_background.scaleY = 1;
+			
+			// plumbob is centered in the stage.
+			_plumbob.x = w/2;
+			_plumbob.y = h/2;
 		}
 
 		private function onStageResize(event:ResizeEvent):void
@@ -206,9 +216,8 @@ package
 		{
 			var dt:Number = 1 / Crumble.frameRate;
 			
-			if (gravity != null) {
-				gravity.preFrameUpdate(dt);
-			}
+			gravity.tangentAmount = _plumbob.currentAngle * 900;
+			gravity.preFrameUpdate(dt);
 			
 			_space.step(dt);
 			
@@ -237,11 +246,11 @@ package
 		private function onTouch(event:TouchEvent):void
 		{
 			var endTouches:Vector.<Touch> = event.getTouches(_foreground, TouchPhase.ENDED);
-			for each (var touch:Touch in endTouches)
-			{
+			if (endTouches.length == 1) {
+				var touch:Touch = endTouches[0];
 				var pos:Point = touch.getLocation(_foreground);
 				bodyQueryCache.clear();
-				_space.bodiesUnderPoint(Vec2.fromPoint(pos, true),  null, bodyQueryCache);
+				_space.bodiesUnderPoint(Vec2.fromPoint(pos, true), null, bodyQueryCache);
 				
 				var hitTerrain:Boolean = false;
 				for (var i:int = 0; i < bodyQueryCache.length && !hitTerrain; i++) {
@@ -255,7 +264,8 @@ package
 				}
 				else {
 					// weapon test
-					_classes.mortar.spawn(new Vec2(pos.x, pos.y), Math.PI*Math.random()*2);
+					//_classes.mortar.spawn(new Vec2(pos.x, pos.y), Math.PI*Math.random()*2);
+					_classes.mine.spawn(new Vec2(pos.x, pos.y), Math.PI*Math.random()*2);
 				}
 			}
 			

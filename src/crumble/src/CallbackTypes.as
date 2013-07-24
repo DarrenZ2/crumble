@@ -6,5 +6,7 @@ package
 	{
 		public static const TERRAIN:CbType = new CbType();
 		public static const MISSILE:CbType = new CbType();
+		public static const MINE:CbType = new CbType();
+		public static const TANK:CbType = new CbType();
 	}
 }

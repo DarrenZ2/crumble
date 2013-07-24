@@ -25,6 +25,7 @@ package
 			var visual:DisplayPolygon = new DisplayPolygon(radius, 3, color);
 			
 			var body:Body = new Body(BodyType.DYNAMIC);
+			body.cbTypes.add(CallbackTypes.TANK);
 			body.shapes.add(new Polygon(bodyVerts));
 			body.setShapeMaterials(Game.service.shared.tankMaterial);
 			body.position = new Vec2(Game.service.terrain.terrainWidth /2 + dir.x * radius * 2,
