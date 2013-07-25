@@ -1,6 +1,5 @@
 package
 {
-	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	
@@ -10,9 +9,11 @@ package
 	import nape.phys.BodyType;
 	import nape.shape.Polygon;
 	import nape.space.Space;
-	import nape.util.BitmapDebug;
 	import nape.util.Debug;
+	import nape.util.ShapeDebug;
 	
+	import starling.animation.IAnimatable;
+	import starling.animation.Juggler;
 	import starling.core.Starling;
 	import starling.display.DisplayObject;
 	import starling.display.DisplayObjectContainer;
@@ -26,11 +27,12 @@ package
 	import starling.events.TouchPhase;
 	import starling.extensions.PDParticleSystem;
 		
-	public final class Game extends Sprite implements IGameService
+	public final class Game extends Sprite implements IGameService, IAnimatable
 	{
 		private static const spaceDebugOverlay:Boolean = false;
 
 		private static var _service:IGameService;		public static function get service():IGameService { return _service; }
+		private var _simulator:Juggler;					public function get simulator():Juggler { return _simulator; }
 		private var _background:Background;				public function get background():DisplayObjectContainer { return _background; }
 		private var _foreground:Sprite;					public function get foreground():DisplayObjectContainer { return _foreground; }
 		private var _hud:Sprite;						public function get hud():DisplayObjectContainer { return _hud; }
@@ -90,7 +92,8 @@ package
 		
 		private function createBorderBody(bounds:Rectangle):Body
 		{
-			var t:Number = 9000; // thickness- large number to make ground look like it goes on forever
+			var ct:Number = 16; 	// collision thickness- large enough to prevent leaks, though I find nape's CCD to be sufficient even for thin bits
+			var vt:Number = 8192; 	// visual thickness- large number to make ground look like it goes on forever
 			
 			var x1:Number = bounds.x;
 			var y1:Number = bounds.y;
@@ -101,16 +104,16 @@ package
 			
 			b.setShapeMaterials(_shared.cordonMaterial);
 
-			b.shapes.add(new Polygon(Polygon.rect(x1-t, y2  , x2+t+t, y1+t)));
-			b.shapes.add(new Polygon(Polygon.rect(x1-t, y1-t, x2+t+t, y1+t)));
-			b.shapes.add(new Polygon(Polygon.rect(x2  , y1  , x1+t  , y2  )));
-			b.shapes.add(new Polygon(Polygon.rect(x1-t, y1  , x1+t  , y2  )));
+			b.shapes.add(new Polygon(Polygon.rect(x1-ct, y2   , x2+ct+ct, y1+ct)));
+			b.shapes.add(new Polygon(Polygon.rect(x1-ct, y1-ct, x2+ct+ct, y1+ct)));
+			b.shapes.add(new Polygon(Polygon.rect(x2   , y1   , x1+ct   , y2   )));
+			b.shapes.add(new Polygon(Polygon.rect(x1-ct, y1   , x1+ct   , y2   )));
 
 			var visual:Sprite = new Sprite();
-			visual.addChild(createQuadRect(x1-t, y2  , x2+t+t, y1+t));
-			visual.addChild(createQuadRect(x1-t, y1-t, x2+t+t, y1+t));
-			visual.addChild(createQuadRect(x2  , y1  , x1+t  , y2  ));
-			visual.addChild(createQuadRect(x1-t, y1  , x1+t  , y2  ));
+			visual.addChild(createQuadRect(x1-vt, y2   , x2+vt+vt, y1+vt));
+			visual.addChild(createQuadRect(x1-vt, y1-vt, x2+vt+vt, y1+vt));
+			visual.addChild(createQuadRect(x2   , y1   , x1+vt   , y2   ));
+			visual.addChild(createQuadRect(x1-vt, y1   , x1+vt   , y2   ));
 			
 			b.userData.visual = visual;
 			
@@ -124,8 +127,10 @@ package
 			}
 
 			_service = this as IGameService;
+			_simulator = new Juggler();
+			_simulator.add(this);
 			
-			_background = new Background();
+			_background = new Background(Math.max(terrainWidth, terrainHeight));
 			addChild(background);
 
 			_foreground = new Sprite();
@@ -143,7 +148,7 @@ package
 			//gravity = new AccelerometerGravity(_space);
 
 			if (spaceDebugOverlay) {
-				debug = new BitmapDebug(terrainWidth, terrainHeight, stage.color);
+				debug = new ShapeDebug(terrainWidth, terrainHeight, stage.color);
 				Starling.current.nativeOverlay.addChild(debug.display);
 			}
 
@@ -179,25 +184,15 @@ package
 		private function resize(w:Number, h:Number):void
 		{
 			// Foreground is centered according to terrain dimensions.
-			// TODO: Fit to screen, and possibly enable pinch/spread/pan.
+			// TODO: Fit to screen.
 			var insetScale:Number = 0.85;	// so that the radius is not up against the edge of the screen
 			var fgs:Number = Math.min(Math.min(fitScale(w, 2*initialCircleRadius), fitScale(h, 2*initialCircleRadius)) * insetScale, maxScale);
-			var fgx:Number = (w - terrainWidth * fgs) / 2; // centered! ooohhhhhmmmmmmm..
-			var fgy:Number = (h - terrainHeight * fgs) / 2;
+			var fgx:Number = w/2; // centered! ooohhhhhmmmmmmm..
+			var fgy:Number = h/2;
 			var fgw:Number = terrainWidth;
 			var fgh:Number = terrainHeight;
-			
-			// Debug exists in the foreground, but must be handled separately
-			// because it uses a flash DisplayObject instead of a Starling
-			// DisplayObject.
-			if (debug != null) {
-				debug.display.x = fgx;
-				debug.display.y = fgy;
-				debug.display.width = fgw;
-				debug.display.height = fgh;
-				debug.display.scaleX = fgs;
-				debug.display.scaleY = fgs;
-			}
+			var cx:Number = terrainWidth/2;
+			var cy:Number = terrainHeight/2;
 			
 			_foreground.x = fgx;
 			_foreground.y = fgy;
@@ -205,14 +200,17 @@ package
 			_foreground.height = fgh;
 			_foreground.scaleX = fgs;
 			_foreground.scaleY = fgs;
+			_foreground.pivotX = cx;
+			_foreground.pivotY = cy;
 
-			// Background remains fullscreen unscaled and untranslated.
-			_background.x = x;
-			_background.y = y;
-			_background.width = w;
-			_background.height = h;
-			_background.scaleX = 1;
-			_background.scaleY = 1;
+			_background.x = fgx;
+			_background.y = fgy;
+			_background.width = fgw;
+			_background.height = fgh;
+			_background.scaleX = fgs;
+			_background.scaleY = fgs;
+			_background.pivotX = cx;
+			_background.pivotY = cy;
 			
 			// Hud remains fullscreen and untranslated.
 			_hud.x = x;
@@ -221,6 +219,8 @@ package
 			_hud.height = h;
 			_hud.scaleX = 1;
 			_hud.scaleY = 1;
+			_hud.pivotX = 0;
+			_hud.pivotY = 0;
 		}
 
 		private function onStageResize(event:ResizeEvent):void
@@ -244,14 +244,12 @@ package
 			}
 		}
 
-		private function onEnterFrame(event:EnterFrameEvent):void
+		public function advanceTime(deltaTime:Number):void
 		{
-			var dt:Number = 1 / Crumble.frameRate;
-			
 			if (spaceActive) {
 				gravity.tangentAmount = _plumbob.currentAngle * 900;
-				gravity.preFrameUpdate(dt);
-				_space.step(dt);
+				gravity.preFrameUpdate(deltaTime);
+				_space.step(deltaTime);
 			}
 			
 			_space.liveBodies.foreach(function(b:Body):void {
@@ -259,10 +257,20 @@ package
 			});
 			
 			if (spaceDebugOverlay) {
+				// Debug exists in the foreground, but must be handled separately
+				// because it uses a flash DisplayObject instead of a Starling
+				// DisplayObject.
+				debug.display.transform.matrix = _foreground.transformationMatrix;
+				
 				debug.clear();
 				debug.draw(_space);
 				debug.flush();
 			}
+		}
+
+		private function onEnterFrame(event:EnterFrameEvent):void
+		{
+			_simulator.advanceTime(1 / Crumble.frameRate);
 		}
 		
 		private function onTouch(event:TouchEvent):void
@@ -290,12 +298,12 @@ package
 				// update pivot point based on previous center
 				var previousLocalA:Point  = touchA.getPreviousLocation(_foreground);
 				var previousLocalB:Point  = touchB.getPreviousLocation(_foreground);
-				_foreground.pivotX = (previousLocalA.x + previousLocalB.x) * 0.5;
-				_foreground.pivotY = (previousLocalA.y + previousLocalB.y) * 0.5;
+				//_foreground.pivotX = (previousLocalA.x + previousLocalB.x) * 0.5;
+				//_foreground.pivotY = (previousLocalA.y + previousLocalB.y) * 0.5;
 				
 				// update location based on the current center
-				_foreground.x = (currentPosA.x + currentPosB.x) * 0.5;
-				_foreground.y = (currentPosA.y + currentPosB.y) * 0.5;
+				//_foreground.x = (currentPosA.x + currentPosB.x) * 0.5;
+				//_foreground.y = (currentPosA.y + currentPosB.y) * 0.5;
 				
 				// rotate
 				//_foreground.rotation += deltaAngle;

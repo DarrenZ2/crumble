@@ -2,12 +2,11 @@ package
 {
 	import flash.geom.Matrix;
 	
+	import nape.geom.Vec2;
 	import nape.phys.Body;
 	
 	import starling.animation.Transitions;
 	import starling.animation.Tween;
-	import starling.core.Starling;
-	import starling.display.Quad;
 	import starling.text.TextField;
 	import starling.utils.Color;
 	
@@ -55,17 +54,17 @@ package
 			
 			Game.service.hud.addChild(title);
 			
-			Starling.juggler.delayCall(function():void {
+			Game.service.simulator.delayCall(function():void {
 				var titleTween:Tween = new Tween(title, duration, Transitions.EASE_OUT_IN);
 				titleTween.animate("y", -title.height);
-				Starling.juggler.add(titleTween);
+				Game.service.simulator.add(titleTween);
 			}, delay, title);
 		}
 
 		private static function simulationPhase():void
 		{
 			Game.service.resumePhysics();
-			Starling.juggler.delayCall(settlePhase, 3); // let physics simulate with interaction
+			Game.service.simulator.delayCall(settlePhase, 3); // let physics simulate with interaction
 		}
 		
 		private static function settlePhase():void
@@ -78,7 +77,7 @@ package
 				b.angularVel = 0;
 			});
 			
-			Starling.juggler.delayCall(plantPhase, 2); // let things settle
+			Game.service.simulator.delayCall(plantPhase, 2); // let things settle
 		}
 		
 		private static function plantPhase():void
@@ -115,6 +114,19 @@ package
 			else {
 				// Game continues
 				Game.service.currentPlayerIndex = (Game.service.currentPlayerIndex + 1) % Game.service.tanks.length; // Next player's turn.
+				
+				// Rotate the foreground so that the current player is upright
+				var cx:Number = Game.service.terrain.terrainWidth / 2;
+				var cy:Number = Game.service.terrain.terrainHeight / 2;
+				var wc:Vec2 = Game.service.tanks[Game.service.currentPlayerIndex].worldCOM;
+				var dir:Vec2 = Vec2.get(wc.x - cx, wc.y - cy);
+				var finalRotation:Number = -dir.angle + Math.PI/2;
+			
+				var rotTween:Tween = new Tween(Game.service.foreground, 1, Transitions.EASE_IN_OUT);
+				rotTween.animate("rotation", finalRotation);
+				Game.service.simulator.add(rotTween);
+				
+				// Kick off the new player turn
 				Game.service.planter.start(Game.service.tanks[Game.service.currentPlayerIndex].worldCOM, vortexPhase);
 				showTitle("Player Up", 0, 1, Game.service.tanks[Game.service.currentPlayerIndex].userData.visual.color);
 			}

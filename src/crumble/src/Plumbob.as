@@ -39,12 +39,12 @@ package
 		public function start(): void
 		{
 			visible = true;
-			Starling.juggler.add(this);
+			Game.service.simulator.add(this);
 		}
 		
 		public function stop() : void
 		{
-			Starling.juggler.remove(this);
+			Game.service.simulator.remove(this);
 			visible = false;
 			_currentAngle = 0;
 		}

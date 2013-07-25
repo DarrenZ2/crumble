@@ -2,16 +2,17 @@ package
 {
 	import starling.display.Quad;
 	import starling.display.Sprite;
-	import starling.events.ResizeEvent;
 	import starling.events.Event;
 	
 	public final class Background extends Sprite
 	{
 		private var quad:Quad;
+		private var radius:Number;
 		
-		public function Background()
+		public function Background(radius:Number)
 		{
 			super();
+			this.radius = radius;
 			
 			if (stage != null) {
 				initialize(null);
@@ -27,17 +28,9 @@ package
 				removeEventListener(Event.ADDED_TO_STAGE, initialize);
 			}
 
-			stage.addEventListener(ResizeEvent.RESIZE, onStageResize);
-			
-			quad = new Quad(stage.stageWidth, stage.stageHeight);
+			quad = new Quad(radius*2, radius*2);
 			quad.color = 0xff506880;
 			addChild(quad);
-		}
-		
-		private function onStageResize(event:ResizeEvent):void 
-		{
-			quad.width = event.width;
-			quad.height = event.height;
 		}
 	}
 }

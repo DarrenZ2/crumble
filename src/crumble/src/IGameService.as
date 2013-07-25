@@ -3,11 +3,13 @@ package
 	import nape.phys.Body;
 	import nape.space.Space;
 	
+	import starling.animation.Juggler;
 	import starling.display.DisplayObjectContainer;
 	import starling.display.Stage;
 
 	public interface IGameService
 	{
+		function get simulator():Juggler;
 		function get stage():Stage;
 		function get space():Space;
 		function get background():DisplayObjectContainer;

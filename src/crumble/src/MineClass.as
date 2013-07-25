@@ -90,7 +90,7 @@ package
 		
 		private function removeParticleSystem(ps:PDParticleSystem):void
 		{
-			Starling.juggler.remove(ps);
+			Game.service.simulator.remove(ps);
 			Game.service.foreground.removeChild(ps, true);
 		}
 		
@@ -110,8 +110,8 @@ package
 			explosion.emitterX = body.worldCOM.x;
 			explosion.emitterY = body.worldCOM.y;
 			explosion.start(explosionEmitterDuration);
-			Starling.juggler.add(explosion);
-			Starling.juggler.delayCall(removeParticleSystem, explosionTimeout, explosion);
+			Game.service.simulator.add(explosion);
+			Game.service.simulator.delayCall(removeParticleSystem, explosionTimeout, explosion);
 			
 			cleanup(body);
 			Game.service.foreground.addChild(explosion);

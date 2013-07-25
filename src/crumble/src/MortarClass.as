@@ -88,7 +88,7 @@ package
 
 		private function removeParticleSystem(ps:PDParticleSystem):void
 		{
-			Starling.juggler.remove(ps);
+			Game.service.simulator.remove(ps);
 			Game.service.foreground.removeChild(ps, true);
 		}
 		
@@ -108,8 +108,8 @@ package
 			explosion.emitterX = body.worldCOM.x;
 			explosion.emitterY = body.worldCOM.y;
 			explosion.start(explosionEmitterDuration);
-			Starling.juggler.add(explosion);
-			Starling.juggler.delayCall(removeParticleSystem, explosionTimeout, explosion);
+			Game.service.simulator.add(explosion);
+			Game.service.simulator.delayCall(removeParticleSystem, explosionTimeout, explosion);
 			
 			cleanup(body);
 			Game.service.foreground.addChild(explosion);
@@ -119,8 +119,8 @@ package
 		{
 			// clean up the visual and physical objects
 			body.userData.particleSystem.stop();
-			Starling.juggler.remove(body.userData.delayedCall);
-			Starling.juggler.delayCall(removeParticleSystem, fireParticleTimeout, body.userData.particleSystem); // wait until particles expire before removing the system
+			Game.service.simulator.remove(body.userData.delayedCall);
+			Game.service.simulator.delayCall(removeParticleSystem, fireParticleTimeout, body.userData.particleSystem); // wait until particles expire before removing the system
 			Game.service.foreground.removeChild(body.userData.visual, true);
 			Game.service.space.bodies.remove(body);
 		}
@@ -128,7 +128,7 @@ package
 		public function spawn(pos:Vec2, rot:Number):void
 		{
 			var firetrail:PDParticleSystem = new PDParticleSystem(fireTrailConfig, blobTexture);
-			Starling.juggler.add(firetrail);
+			Game.service.simulator.add(firetrail);
 			firetrail.start();
 
 			var body:Body = new Body(BodyType.DYNAMIC);
@@ -139,7 +139,7 @@ package
 			body.velocity = PhysicsHelpers.directionFromAngle(rot);
 			body.velocity.length = 100;
 			body.userData.particleSystem = firetrail;
-			body.userData.delayedCall = Starling.juggler.delayCall(cleanup, this.mortarTimeout, body); 
+			body.userData.delayedCall = Game.service.simulator.delayCall(cleanup, this.mortarTimeout, body); 
 			body.cbTypes.add(CallbackTypes.MISSILE);
 
 			Game.service.foreground.addChild(firetrail);
