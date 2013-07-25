@@ -5,31 +5,46 @@ package
 	
 	import nape.geom.Vec2;
 	
+	import starling.animation.IAnimatable;
+	import starling.core.Starling;
 	import starling.display.Sprite;
 	import starling.events.ResizeEvent;
 	import starling.utils.deg2rad;
 
-	public final class Plumbob extends Sprite
+	public final class Plumbob extends Sprite implements IAnimatable
 	{
 		private var accelerometer:Accelerometer;
 		private var border1:DisplayPolygon;
 		private var border2:DisplayPolygon;
 		private var border3:DisplayPolygon;
 		private var border4:DisplayPolygon;
-		private const indicatorRadius:Number = 300;
+		private const indicatorRadius:Number = 150;
 		private const zeroBias:Number = deg2rad(90);
 		private const maxAngle:Number = deg2rad(100);
 		private const minAngle:Number = deg2rad(-100);
 		private const angleSnap:Number = deg2rad(10);
 		private var _currentAngle:Number = 0;				public function get currentAngle():Number { return _currentAngle; }
 		
+		public function advanceTime(deltaTime:Number):void
+		{
+			rotation += _currentAngle * deltaTime * 4;
+			rotation %= 2*Math.PI;
+
+			border1.scaleX = 
+			border2.scaleX = 
+			border3.scaleX = 
+			border4.scaleX = _currentAngle * 2;
+		}
+		
 		public function start(): void
 		{
 			visible = true;
+			Starling.juggler.add(this);
 		}
 		
 		public function stop() : void
 		{
+			Starling.juggler.remove(this);
 			visible = false;
 			_currentAngle = 0;
 		}
@@ -80,7 +95,7 @@ package
 			border1.scaleX = 
 			border2.scaleX = 
 			border3.scaleX = 
-			border4.scaleX = 0; // not visible initially
+			border4.scaleX = 1;
 			
 			// display the widgets
 			addChild(border1);
@@ -93,12 +108,18 @@ package
 			
 			Game.service.hud.addChild(this);
 			stage.addEventListener(ResizeEvent.RESIZE, onStageResize);
+			resize(stage.stageWidth, stage.stageHeight);
 		}
 		
+		private function resize(w:Number, h:Number):void
+		{
+			x = w / 2;
+			y = h / 2;
+		}
+
 		private function onStageResize(event:ResizeEvent):void
 		{
-			x = event.width / 2;
-			y = event.height / 2;
+			resize(event.width, event.height);
 		}
 		
 		private function onAccelerometerUpdate(event:AccelerometerEvent):void
@@ -123,12 +144,6 @@ package
 					_currentAngle = 0; // player has the phone lying flat
 					// TODO: read from z-axis instead?
 				}
-	
-				// adjust all lengthwise scales accordingly- longer = more acceleration
-				border1.scaleX = 
-				border2.scaleX = 
-				border3.scaleX = 
-				border4.scaleX = _currentAngle * 4;
 			}
 		}
 	}
