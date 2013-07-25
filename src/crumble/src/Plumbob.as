@@ -6,6 +6,7 @@ package
 	import nape.geom.Vec2;
 	
 	import starling.display.Sprite;
+	import starling.events.ResizeEvent;
 	import starling.utils.deg2rad;
 
 	public final class Plumbob extends Sprite
@@ -17,11 +18,22 @@ package
 		private var border4:DisplayPolygon;
 		private const indicatorRadius:Number = 300;
 		private const zeroBias:Number = deg2rad(90);
-		private const maxAngle:Number = deg2rad(40);
-		private const minAngle:Number = deg2rad(-40);
-		private const angleSnap:Number = deg2rad(5);
+		private const maxAngle:Number = deg2rad(100);
+		private const minAngle:Number = deg2rad(-100);
+		private const angleSnap:Number = deg2rad(10);
 		private var _currentAngle:Number = 0;				public function get currentAngle():Number { return _currentAngle; }
 		
+		public function start(): void
+		{
+			visible = true;
+		}
+		
+		public function stop() : void
+		{
+			visible = false;
+			_currentAngle = 0;
+		}
+
 		public function Plumbob()
 		{
 			accelerometer = new Accelerometer();
@@ -70,27 +82,48 @@ package
 			border3.scaleX = 
 			border4.scaleX = 0; // not visible initially
 			
-			// add them to the display
+			// display the widgets
 			addChild(border1);
 			addChild(border2);
 			addChild(border3);
 			addChild(border4);
 
 			this.touchable = false;
+			this.visible = false;
+			
+			Game.service.hud.addChild(this);
+			stage.addEventListener(ResizeEvent.RESIZE, onStageResize);
+		}
+		
+		private function onStageResize(event:ResizeEvent):void
+		{
+			x = event.width / 2;
+			y = event.height / 2;
 		}
 		
 		private function onAccelerometerUpdate(event:AccelerometerEvent):void
 		{
-			var v:Vec2 = new Vec2(-event.accelerationX, event.accelerationY);
-			
-			if (v.length >= 0.5) {
-				var rot:Number = v.angle;
-				rot = Math.min(rot, maxAngle + zeroBias);
-				rot = Math.max(rot, minAngle + zeroBias);
-				rot = (Math.floor((rot + deg2rad(360)) / angleSnap + 0.5) * angleSnap) - deg2rad(360);
+			if (visible) 
+			{
+				var v:Vec2 = new Vec2(-event.accelerationX, event.accelerationY);
 				
-				_currentAngle = rot - zeroBias;
-				
+				if (v.length >= 0.5) {
+					const twopi:Number = 2*Math.PI;
+					var rot:Number = (twopi + v.angle + zeroBias) % twopi - Math.PI; // zeroBias moves the 0 point to the 'bottom' and the -+pi singularity to the 'top'
+					rot = (Math.floor((rot + twopi) / angleSnap + 0.5) * angleSnap) - twopi;
+					
+					if (rot < minAngle || rot > maxAngle) {
+						_currentAngle = 0; // player tilted too far
+					}
+					else {
+						_currentAngle = rot;
+					}
+				}
+				else {
+					_currentAngle = 0; // player has the phone lying flat
+					// TODO: read from z-axis instead?
+				}
+	
 				// adjust all lengthwise scales accordingly- longer = more acceleration
 				border1.scaleX = 
 				border2.scaleX = 

@@ -33,22 +33,37 @@ package
 		private static var _service:IGameService;		public static function get service():IGameService { return _service; }
 		private var _background:Background;				public function get background():DisplayObjectContainer { return _background; }
 		private var _foreground:Sprite;					public function get foreground():DisplayObjectContainer { return _foreground; }
+		private var _hud:Sprite;						public function get hud():DisplayObjectContainer { return _hud; }
 		private var gravity:PointGravity;
 		private var border:Body;
 		private var _space:Space;						public function get space():Space { return _space; }
+		private var spaceActive:Boolean = true;
 		private var debug:Debug;
 		private var bodyQueryCache:BodyList;
 		private var _terrain:Terrain;					public function get terrain():Terrain { return _terrain; }
 		private var _classes:GameClasses;				public function get classes():GameClasses { return _classes; }
 		private var _shared:SharedResources;			public function get shared():SharedResources { return _shared; }
-		private var _plumbob:Plumbob;
+		private var _plumbob:Plumbob;					public function get plumbob():Plumbob { return _plumbob; }
+		private var _planter:Planter;					public function get planter():Planter { return _planter; }
+		private var _tanks:Vector.<Body>;				public function get tanks():Vector.<Body> { return _tanks; }
+		private var _currentPlayerIndex:int = 0;		public function get currentPlayerIndex():int { return _currentPlayerIndex; }		public function set currentPlayerIndex(value:int):void { _currentPlayerIndex = value; }
 		private const terrainWidth:int = 1024;
 		private const terrainHeight:int = 1024;
-		private const initialCircleRadius:Number = 128;
+		public static const initialCircleRadius:Number = 256;
 		private const pointGravityMagnitude:Number = -400;
 		private const minScale:Number = 0.5;
-		private const maxScale:Number = 1.5;
+		private const maxScale:Number = 4.0;
 
+		public function pausePhysics():void
+		{
+			spaceActive = false;
+		}
+		
+		public function resumePhysics():void
+		{
+			spaceActive = true;
+		}
+		
 		public function Game()
 		{
 			super();
@@ -72,6 +87,7 @@ package
 			return q;
 			
 		}
+		
 		private function createBorderBody(bounds:Rectangle):Body
 		{
 			var t:Number = 9000; // thickness- large number to make ground look like it goes on forever
@@ -115,6 +131,9 @@ package
 			_foreground = new Sprite();
 			addChild(foreground);
 
+			_hud = new Sprite();
+			addChild(_hud);
+			
 			_space = new Space(Vec2.weak(0, 0));
 			_classes = new GameClasses(); // there are some hidden dependencies on _space at the moment (see MortarClass ctor)
 			_shared = new SharedResources();
@@ -133,29 +152,22 @@ package
 			border.space = space;
 			foreground.addChild(border.userData.visual);
 
-			// terrain - start with a hole punched in the center
+			// new filled terrain
 			_terrain = new Terrain(_space, terrainWidth, terrainHeight);
 			_foreground.addChild(_terrain);
-			var circleTransform:Matrix = new Matrix();
-			_shared.circleStencil512.matrixScaleRotateCenterInplace(initialCircleRadius/512, initialCircleRadius/512, 0, terrainWidth/2, terrainHeight/2, circleTransform);
-			_terrain.subtractStencil(_shared.circleStencil512, circleTransform);
 			
-			// continuous events
+			// add widgets etc
+			_plumbob = new Plumbob();
+			_planter = new Planter();
+			_tanks = new Vector.<Body>();
+			
+			// events and layout
 			addEventListener(EnterFrameEvent.ENTER_FRAME, onEnterFrame);
 			addEventListener(TouchEvent.TOUCH, onTouch);
-			
-			// add three tanks
-			_classes.tank.spawn(2*Math.PI*0/3, 0xFFFF0000);
-			_classes.tank.spawn(2*Math.PI*1/3, 0xFFFFFF00);
-			_classes.tank.spawn(2*Math.PI*2/3, 0xFF0000FF);
-			
-			// add plumbob widget
-			_plumbob = new Plumbob();
-			addChild(_plumbob);
-
-			// handle layout
 			stage.addEventListener(ResizeEvent.RESIZE, onStageResize);
 			resize(stage.stageWidth, stage.stageHeight); // prime the sizes
+			
+			PliskenMode.run();
 		}
 
 		// Scale value to fit the foreground dimension (f) to the stage dimension (s).
@@ -202,9 +214,13 @@ package
 			_background.scaleX = 1;
 			_background.scaleY = 1;
 			
-			// plumbob is centered in the stage.
-			_plumbob.x = w/2;
-			_plumbob.y = h/2;
+			// Hud remains fullscreen and untranslated.
+			_hud.x = x;
+			_hud.y = y;
+			_hud.width = w;
+			_hud.height = h;
+			_hud.scaleX = 1;
+			_hud.scaleY = 1;
 		}
 
 		private function onStageResize(event:ResizeEvent):void
@@ -212,28 +228,34 @@ package
 			resize(event.width, event.height);
 		}
 		
+		public function updateBodyVisuals(body:Body):void
+		{
+			var visual:DisplayObject = body.userData.visual;
+			if (visual != null) {
+				visual.x = body.position.x; 
+				visual.y = body.position.y;
+				visual.rotation = body.rotation;
+			}
+			
+			var ps:PDParticleSystem = body.userData.particleSystem;
+			if (ps != null) {
+				ps.emitterX = body.position.x;
+				ps.emitterY = body.position.y;
+			}
+		}
+
 		private function onEnterFrame(event:EnterFrameEvent):void
 		{
 			var dt:Number = 1 / Crumble.frameRate;
 			
-			gravity.tangentAmount = _plumbob.currentAngle * 900;
-			gravity.preFrameUpdate(dt);
-			
-			_space.step(dt);
+			if (spaceActive) {
+				gravity.tangentAmount = _plumbob.currentAngle * 900;
+				gravity.preFrameUpdate(dt);
+				_space.step(dt);
+			}
 			
 			_space.liveBodies.foreach(function(b:Body):void {
-				var visual:DisplayObject = b.userData.visual;
-				if (visual != null) {
-					visual.x = b.position.x; 
-					visual.y = b.position.y;
-					visual.rotation = b.rotation;
-				}
-				
-				var ps:PDParticleSystem = b.userData.particleSystem;
-				if (ps != null) {
-					ps.emitterX = b.position.x;
-					ps.emitterY = b.position.y;
-				}
+				updateBodyVisuals(b);
 			});
 			
 			if (spaceDebugOverlay) {
@@ -245,30 +267,6 @@ package
 		
 		private function onTouch(event:TouchEvent):void
 		{
-			var endTouches:Vector.<Touch> = event.getTouches(_foreground, TouchPhase.ENDED);
-			if (endTouches.length == 1) {
-				var touch:Touch = endTouches[0];
-				var pos:Point = touch.getLocation(_foreground);
-				bodyQueryCache.clear();
-				_space.bodiesUnderPoint(Vec2.fromPoint(pos, true), null, bodyQueryCache);
-				
-				var hitTerrain:Boolean = false;
-				for (var i:int = 0; i < bodyQueryCache.length && !hitTerrain; i++) {
-					if (bodyQueryCache.at(i).isStatic()) {
-						hitTerrain = true;
-					}
-				}
-				
-				if (hitTerrain) {
-					// do nothing
-				}
-				else {
-					// weapon test
-					//_classes.mortar.spawn(new Vec2(pos.x, pos.y), Math.PI*Math.random()*2);
-					_classes.mine.spawn(new Vec2(pos.x, pos.y), Math.PI*Math.random()*2);
-				}
-			}
-			
 			var moveTouches:Vector.<Touch> = event.getTouches(_foreground, TouchPhase.MOVED);
 			if (moveTouches.length == 1) {
 			}

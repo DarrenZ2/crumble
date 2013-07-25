@@ -5,6 +5,8 @@ package
 	import nape.phys.BodyType;
 	import nape.phys.Material;
 	import nape.shape.Polygon;
+	
+	import starling.display.Quad;
 
 	public final class TankClass
 	{
@@ -18,11 +20,15 @@ package
 			material = new Material(1.2);
 		}
 		
-		public function spawn(rot:Number, color:uint):void
+		public function spawn(rot:Number, color:uint):Body
 		{
 			var dir:Vec2 = PhysicsHelpers.directionFromAngle(rot);
-			
-			var visual:DisplayPolygon = new DisplayPolygon(radius, 3, color);
+
+			var r:Number = radius * 0.667;
+			var visual:Quad = new starling.display.Quad(r*2, r*2, color);
+			visual.pivotX = r;
+			visual.pivotY = r;
+//			var visual:DisplayPolygon = new DisplayPolygon(radius, 3, color);
 			
 			var body:Body = new Body(BodyType.DYNAMIC);
 			body.cbTypes.add(CallbackTypes.TANK);
@@ -32,9 +38,12 @@ package
 									 Game.service.terrain.terrainHeight/2 + dir.y * radius * 2);
 			body.rotation = rot + Math.PI;
 			body.userData.visual = visual;
+			body.userData.health = 100.0;
 
 			Game.service.foreground.addChild(visual);
 			Game.service.space.bodies.add(body);
+			
+			return body;
 		}
 	}
 }

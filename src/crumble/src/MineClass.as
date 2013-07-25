@@ -77,6 +77,14 @@ package
 				var impulse:Vec2 = closest2.sub(pos);
 				impulse.length = 320;
 				b.applyImpulse(impulse, null, true);
+				
+				// subtract health
+				if (b.userData.health != null) {
+					b.userData.health -= 25;
+					if (b.userData.health < 0) {
+						b.userData.health = 0;
+					}
+				}
 			}
 		}
 		
@@ -118,7 +126,7 @@ package
 		
 		public function spawn(pos:Vec2, rot:Number):void
 		{
-			var body:Body = new Body(BodyType.DYNAMIC);
+			var body:Body = new Body(BodyType.STATIC);
 			body.shapes.add(new Circle(collisionRadius));
 			body.setShapeMaterials(Game.service.shared.mineMaterial);
 			body.position = pos; 
@@ -132,6 +140,7 @@ package
 			
 			Game.service.foreground.addChild(visual);
 			Game.service.space.bodies.add(body);
+			Game.service.updateBodyVisuals(body);
 		}
 	}
 }
