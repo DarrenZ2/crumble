@@ -51,7 +51,7 @@ package
 		private var _currentPlayerIndex:int = 0;		public function get currentPlayerIndex():int { return _currentPlayerIndex; }		public function set currentPlayerIndex(value:int):void { _currentPlayerIndex = value; }
 		private const terrainWidth:int = 1024;
 		private const terrainHeight:int = 1024;
-		public static const initialCircleRadius:Number = 256;
+		public static const initialCircleRadius:Number = 278;
 		private const pointGravityMagnitude:Number = -400;
 		private const minScale:Number = 0.5;
 		private const maxScale:Number = 4.0;
@@ -315,6 +315,8 @@ package
 				
 				_foreground.scaleX = Math.max(Math.min(_foreground.scaleX, maxScale), minScale);
 				_foreground.scaleY = Math.max(Math.min(_foreground.scaleY, maxScale), minScale);
+				_background.scaleX = _foreground.scaleX;
+				_background.scaleY = _foreground.scaleY;
 			}
 		}
 	}

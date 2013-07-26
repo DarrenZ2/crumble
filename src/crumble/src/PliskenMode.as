@@ -12,6 +12,18 @@ package
 	
 	public final class PliskenMode
 	{
+		[Embed(source="fg1.png")]
+		private static const Foreground:Class;
+	
+//		[Embed(source="player_blue_01.png")] private static const BluePlayer1:Class;
+//		[Embed(source="player_blue_02.png")] private static const BluePlayer2:Class;
+//		
+//		[Embed(source="player_red_01.png")] private static const RedPlayer1:Class;
+//		[Embed(source="player_red_02.png")] private static const RedPlayer2:Class;
+//		
+//		[Embed(source="player_yellow_01.png")] private static const YellowPlayer1:Class;
+//		[Embed(source="player_yellow_02.png")] private static const YellowPlayer2:Class;
+		
 		public static function run():void
 		{
 			// set up shared state: terrain, tanks, players, environment
@@ -25,12 +37,20 @@ package
 				Game.service.terrain.terrainHeight/2, 
 				circleTransform);
 			
-			Game.service.terrain.subtractStencil(Game.service.shared.circleStencil512, circleTransform);
+			var ident:Matrix = new Matrix();
+			ident.identity();
+			
+			var fgStencil:Stencil = Stencil.createFromBitmap(new Foreground());
+			Game.service.terrain.subtractCollision(Game.service.shared.circleStencil512, circleTransform);
+			Game.service.terrain.subtractVisual(Game.service.shared.circleStencil512, circleTransform);
+			Game.service.terrain.addVisual(fgStencil, ident); 
+			fgStencil.dispose();
 			
 			Game.service.tanks.push(
-				Game.service.classes.tank.spawn(2*Math.PI*0/3, 0xFFFF0000),
-				Game.service.classes.tank.spawn(2*Math.PI*1/3, 0xFFFFFF00),
-				Game.service.classes.tank.spawn(2*Math.PI*2/3, 0xFF0000FF));
+				Game.service.classes.tank.spawn(2*Math.PI*0/3, 0xFFFF0000, null), //Texture.fromBitmap(new RedPlayer1())),
+				Game.service.classes.tank.spawn(2*Math.PI*1/3, 0xFFFFFF00, null), //Texture.fromBitmap(new YellowPlayer1())),
+				Game.service.classes.tank.spawn(2*Math.PI*2/3, 0xFF0000FF, null) //Texture.fromBitmap(new BluePlayer1()))
+			);
 			
 			Game.service.currentPlayerIndex = -1; // No valid player initially.
 			Game.service.plumbob.stop();
@@ -122,10 +142,14 @@ package
 				var dir:Vec2 = Vec2.get(wc.x - cx, wc.y - cy);
 				var finalRotation:Number = -dir.angle + Math.PI/2;
 			
-				var rotTween:Tween = new Tween(Game.service.foreground, 1, Transitions.EASE_IN_OUT);
-				rotTween.animate("rotation", finalRotation);
-				Game.service.simulator.add(rotTween);
+				var fgrot:Tween = new Tween(Game.service.foreground, 1, Transitions.EASE_IN_OUT);
+				fgrot.animate("rotation", finalRotation);
+				Game.service.simulator.add(fgrot);
 				
+				var bgrot:Tween = new Tween(Game.service.background, 1, Transitions.EASE_IN_OUT);
+				bgrot.animate("rotation", finalRotation * 0.86);
+				Game.service.simulator.add(bgrot);
+
 				// Kick off the new player turn
 				Game.service.planter.start(Game.service.tanks[Game.service.currentPlayerIndex].worldCOM, vortexPhase);
 				showTitle("Player Up", 0, 1, Game.service.tanks[Game.service.currentPlayerIndex].userData.visual.color);
@@ -135,7 +159,11 @@ package
 		private static function vortexPhase():void
 		{
 			showTitle("Rotate Shit!", 0, 1, Game.service.tanks[Game.service.currentPlayerIndex].userData.visual.color);
-			Game.service.plumbob.start();
+			Game.service.plumbob.start(onVortexConfirmed);
+		}
+		
+		private static function onVortexConfirmed():void
+		{
 			simulationPhase();
 		}
 	}

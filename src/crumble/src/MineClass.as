@@ -13,13 +13,16 @@ package
 	import nape.phys.BodyType;
 	import nape.shape.Circle;
 	
-	import starling.core.Starling;
-	import starling.display.Quad;
+	import starling.display.Image;
 	import starling.extensions.PDParticleSystem;
 	import starling.textures.Texture;
 
 	public final class MineClass
 	{
+		[Embed(source="bomb.png")]
+		private static const Bomb:Class;
+		private var bombTexture:Texture;
+		
 		[Embed(source="explosion.pex", mimeType="application/octet-stream")]
 		private static const ExplosionConfig:Class;
 		private const explosionEmitterDuration:Number = 0.2;
@@ -30,12 +33,14 @@ package
 		private static const BlobBitmap:Class;
 		private const blobTexture:Texture = Texture.fromBitmap(new BlobBitmap());
 		
-		private const collisionRadius:Number = 8;
-		private const explosionRadius:Number = 64;
+		private const collisionRadius:Number = 16;
+		private const explosionRadius:Number = 72;
 		private var distSamplePoint:Body;
 		
 		public function MineClass()
 		{
+			bombTexture = Texture.fromBitmap(new Bomb());
+			
 			// point-approximation hack for closest point checks
 			distSamplePoint = new Body();
 			distSamplePoint.shapes.add(new Circle(0.001));
@@ -53,7 +58,8 @@ package
 		{
 			var transform:Matrix = new Matrix();
 			Game.service.shared.circleStencil512.matrixScaleRotateCenterInplace(explosionRadius/512, explosionRadius/512, 0, pos.x, pos.y, transform);
-			Game.service.terrain.subtractStencil(Game.service.shared.circleStencil512, transform);
+			Game.service.terrain.subtractVisual(Game.service.shared.circleStencil512, transform);
+			Game.service.terrain.subtractCollision(Game.service.shared.circleStencil512, transform);
 		}
 		
 		private function applyRadialImpulseAt(pos:Vec2):void
@@ -133,9 +139,11 @@ package
 			body.rotation = rot;
 			body.cbTypes.add(CallbackTypes.MINE);
 			
-			var visual:Quad = new starling.display.Quad(collisionRadius*2, collisionRadius*2, 0xFFFF00FF);
-			visual.pivotX = collisionRadius;
-			visual.pivotY = collisionRadius;
+			var visual:Image = new Image(bombTexture);
+			visual.pivotX = bombTexture.width/2;
+			visual.pivotY = bombTexture.height/2;
+			visual.scaleX = 1;
+			visual.scaleY = 1;
 			body.userData.visual = visual;
 			
 			Game.service.foreground.addChild(visual);

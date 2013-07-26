@@ -6,7 +6,10 @@ package
 	import nape.phys.Material;
 	import nape.shape.Polygon;
 	
+	import starling.display.DisplayObject;
 	import starling.display.Quad;
+	import starling.textures.Texture;
+	import starling.display.Image;
 
 	public final class TankClass
 	{
@@ -20,15 +23,23 @@ package
 			material = new Material(1.2);
 		}
 		
-		public function spawn(rot:Number, color:uint):Body
+		public function spawn(rot:Number, color:uint, standTexture:Texture):Body
 		{
 			var dir:Vec2 = PhysicsHelpers.directionFromAngle(rot);
-
+			var visual:DisplayObject;
 			var r:Number = radius * 0.667;
-			var visual:Quad = new starling.display.Quad(r*2, r*2, color);
-			visual.pivotX = r;
-			visual.pivotY = r;
-//			var visual:DisplayPolygon = new DisplayPolygon(radius, 3, color);
+			
+			if (standTexture != null) {
+				var i:Image = new Image(standTexture);
+				i.pivotX = standTexture.width / 2;
+				i.pivotY = standTexture.height - r;
+				visual = i;
+			} else {
+				var q:Quad = new Quad(r*2, r*2, color);
+				q.pivotX = r;
+				q.pivotY = r;
+				visual = q;
+			}
 			
 			var body:Body = new Body(BodyType.DYNAMIC);
 			body.cbTypes.add(CallbackTypes.TANK);

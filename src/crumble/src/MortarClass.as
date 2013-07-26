@@ -13,7 +13,6 @@ package
 	import nape.phys.BodyType;
 	import nape.shape.Circle;
 	
-	import starling.core.Starling;
 	import starling.display.Sprite;
 	import starling.extensions.PDParticleSystem;
 	import starling.textures.Texture;
@@ -59,7 +58,8 @@ package
 		{
 			var transform:Matrix = new Matrix();
 			Game.service.shared.circleStencil512.matrixScaleRotateCenterInplace(explosionRadius/512, explosionRadius/512, 0, pos.x, pos.y, transform);
-			Game.service.terrain.subtractStencil(Game.service.shared.circleStencil512, transform);
+			Game.service.terrain.subtractVisual(Game.service.shared.circleStencil512, transform);
+			Game.service.terrain.subtractCollision(Game.service.shared.circleStencil512, transform);
 		}
 		
 		private function applyRadialImpulseAt(pos:Vec2):void

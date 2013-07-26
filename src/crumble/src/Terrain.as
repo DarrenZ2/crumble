@@ -52,7 +52,7 @@ package
 			
 			// Construct visible terrain and mask out collision threshold beneath the isovalue, 0x80.
 			var initialTerrainBitmap:BitmapData = new BitmapData(_terrainWidth, _terrainHeight);
-			initialTerrainBitmap.fillRect(terrainCollision.rect, 0xFF331E00); // dirt color yo!
+			initialTerrainBitmap.fillRect(terrainCollision.rect, 0x00000000); // dirt color yo!
 			initialTerrainBitmap.threshold(terrainCollision, initialTerrainBitmap.rect, new Point(0, 0), "<", 0x00800000, 0x00000000, 0x00FF0000, false);
 			var initialTerrainTexture:Texture = Texture.fromBitmapData(initialTerrainBitmap, false);
 			var initialTerrainImage:Image = new Image(initialTerrainTexture);
@@ -69,14 +69,32 @@ package
 			terrain.invalidate(new AABB(0, 0, _terrainWidth, _terrainHeight), space);
 		}
 		
-		public function subtractStencil(stencil:Stencil, transform:Matrix):void
+		public function subtractCollision(stencil:Stencil, transform:Matrix):void
 		{
 			stencil.subtractFromBitmapData(transform, terrainCollision);
-			stencil.subtractFromRenderTexture(transform, terrainTexture);
-
+			
 			// update dirty region in collision
 			var region:Rectangle = RectangleHelpers.boundsFromTransformedRect(stencil.rect, transform);
 			terrain.invalidate(AABB.fromRect(region), space);
+		}
+		
+		public function subtractVisual(stencil:Stencil, transform:Matrix):void
+		{
+			stencil.subtractFromRenderTexture(transform, terrainTexture);
+		}
+
+		public function addCollision(stencil:Stencil, transform:Matrix):void
+		{
+			stencil.addToBitmapData(transform, terrainCollision);
+			
+			// update dirty region in collision
+			var region:Rectangle = RectangleHelpers.boundsFromTransformedRect(stencil.rect, transform);
+			terrain.invalidate(AABB.fromRect(region), space);
+		}
+		
+		public function addVisual(stencil:Stencil, transform:Matrix):void
+		{
+			stencil.addToRenderTexture(transform, terrainTexture);
 		}
 	}
 }

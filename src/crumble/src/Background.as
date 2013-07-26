@@ -1,18 +1,23 @@
 package
 {
-	import starling.display.Quad;
+	import starling.display.Image;
 	import starling.display.Sprite;
 	import starling.events.Event;
+	import starling.textures.Texture;
 	
 	public final class Background extends Sprite
 	{
-		private var quad:Quad;
-		private var radius:Number;
+		[Embed(source="bg1.png")]
+		private static const Background1:Class;
+
+		[Embed(source="bg2.png")]
+		private static const Background2:Class;
+
+		private var image:Image;
 		
 		public function Background(radius:Number)
 		{
 			super();
-			this.radius = radius;
 			
 			if (stage != null) {
 				initialize(null);
@@ -28,9 +33,10 @@ package
 				removeEventListener(Event.ADDED_TO_STAGE, initialize);
 			}
 
-			quad = new Quad(radius*2, radius*2);
-			quad.color = 0xff506880;
-			addChild(quad);
+			var Background:Class = (Math.random() > 0.5) ? Background1 : Background2;
+			var tex1:Texture = Texture.fromBitmap(new Background());
+			image = new Image(tex1);
+			addChild(image);
 		}
 	}
 }

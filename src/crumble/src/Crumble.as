@@ -8,10 +8,10 @@ package
 	import starling.core.Starling;
 	import flash.geom.Rectangle;
 
-	[SWF(width="32", height="32", frameRate="60", backgroundColor="#000000")]
+	[SWF(width="32", height="32", frameRate="30", backgroundColor="#000000")]
 	public class Crumble extends Sprite
 	{
-		public static const frameRate:int = 60;
+		public static const frameRate:int = 30;
 		private var mStarling:Starling;
 		
 		public function Crumble()
