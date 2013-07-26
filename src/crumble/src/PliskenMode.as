@@ -53,7 +53,7 @@ package
 			);
 			
 			Game.service.currentPlayerIndex = -1; // No valid player initially.
-			Game.service.plumbob.stop();
+			Game.service.windWidget.stop();
 
 			
 			// kick off the game loop
@@ -90,7 +90,7 @@ package
 		private static function settlePhase():void
 		{
 			// Kill velocity on all live bodies and let gravity do the rest
-			Game.service.plumbob.stop();
+			Game.service.windWidget.stop();
 			Game.service.space.liveBodies.foreach(function(b:Body):void {
 				b.velocity.x = 0;
 				b.velocity.y = 0;
@@ -158,8 +158,8 @@ package
 
 		private static function vortexPhase():void
 		{
-			showTitle("Rotate Shit!", 0, 1, Game.service.tanks[Game.service.currentPlayerIndex].userData.visual.color);
-			Game.service.plumbob.start(onVortexConfirmed);
+			showTitle("The Winds of Fate", 0, 1, Game.service.tanks[Game.service.currentPlayerIndex].userData.visual.color);
+			Game.service.windWidget.start(onVortexConfirmed);
 		}
 		
 		private static function onVortexConfirmed():void

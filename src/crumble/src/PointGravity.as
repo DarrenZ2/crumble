@@ -4,7 +4,7 @@ package
 	import nape.phys.Body;
 	import nape.space.Space;
 
-	public final class PointGravity implements IGravity
+	public final class PointGravity
 	{
 		private var _origin:Vec2;
 		private var deadRadius:Number;

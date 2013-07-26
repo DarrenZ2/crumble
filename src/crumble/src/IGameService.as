@@ -17,7 +17,7 @@ package
 		function get hud():DisplayObjectContainer;
 		function get classes():GameClasses;
 		function get terrain():Terrain;
-		function get plumbob():Plumbob;
+		function get windWidget():WindWidget;
 		function get planter():Planter;
 		function get shared():SharedResources;
 		function updateBodyVisuals(body:Body):void;

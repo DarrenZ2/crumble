@@ -45,7 +45,7 @@ package
 		private var _terrain:Terrain;					public function get terrain():Terrain { return _terrain; }
 		private var _classes:GameClasses;				public function get classes():GameClasses { return _classes; }
 		private var _shared:SharedResources;			public function get shared():SharedResources { return _shared; }
-		private var _plumbob:Plumbob;					public function get plumbob():Plumbob { return _plumbob; }
+		private var _windWidget:WindWidget;				public function get windWidget():WindWidget { return _windWidget; }
 		private var _planter:Planter;					public function get planter():Planter { return _planter; }
 		private var _tanks:Vector.<Body>;				public function get tanks():Vector.<Body> { return _tanks; }
 		private var _currentPlayerIndex:int = 0;		public function get currentPlayerIndex():int { return _currentPlayerIndex; }		public function set currentPlayerIndex(value:int):void { _currentPlayerIndex = value; }
@@ -162,7 +162,7 @@ package
 			_foreground.addChild(_terrain);
 			
 			// add widgets etc
-			_plumbob = new Plumbob();
+			_windWidget = new WindWidget();
 			_planter = new Planter();
 			_tanks = new Vector.<Body>();
 			
@@ -247,7 +247,7 @@ package
 		public function advanceTime(deltaTime:Number):void
 		{
 			if (spaceActive) {
-				gravity.tangentAmount = _plumbob.currentAngle * 900;
+				gravity.tangentAmount = _windWidget.currentAngle * 900;
 				gravity.preFrameUpdate(deltaTime);
 				_space.step(deltaTime);
 			}
